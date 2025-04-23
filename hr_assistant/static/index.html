@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .chat-container {
+            display: none;
+            flex-direction: column;
+            height: 500px;
+            gap: 10px;
+        }
+
+        .messages {
+            flex-grow: 1;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-message {
+            background-color: #d1e7ff;
+            margin-left: 20%;
+            margin-right: 5px;
+        }
+
+        .assistant-message {
+            background-color: #e5e5e5;
+            margin-right: 20%;
+            margin-left: 5px;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex-grow: 1;
+        }
+
+        .tools-section {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tool-button {
+            padding: 8px 12px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .tool-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .loading {
+            text-align: center;
+            margin: 10px 0;
+            font-style: italic;
+            color: #777;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>HR Assistant</h1>
+
+        <div id="login-section">
+            <div class="login-form">
+                <input type="text" id="employee-id" placeholder="Enter your Employee ID (e.g., EMP103)" value="EMP103">
+                <button id="login-button">Login</button>
+            </div>
+        </div>
+
+        <div id="chat-section" class="chat-container">
+            <div class="messages" id="messages"></div>
+            <div class="loading" id="loading">Assistant is thinking...</div>
+            <div class="tools-section">
+                <button class="tool-button" data-query="Show my attendance this month">My Attendance</button>
+                <button class="tool-button" data-query="Show my profile details">My Profile</button>
+                <button class="tool-button" data-query="What's my leave balance?">Leave Balance</button>
+            </div>
+            <div class="input-container">
+                <input type="text" id="message-input" placeholder="Type your question...">
+                <button id="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginSection = document.getElementById('login-section');
+            const chatSection = document.getElementById('chat-section');
+            const messagesContainer = document.getElementById('messages');
+            const loadingIndicator = document.getElementById('loading');
+            const employeeIdInput = document.getElementById('employee-id');
+            const messageInput = document.getElementById('message-input');
+            const loginButton = document.getElementById('login-button');
+            const sendButton = document.getElementById('send-button');
+            const toolButtons = document.querySelectorAll('.tool-button');
+
+            // API endpoint
+            const API_URL = '/chat';
+
+            // Store the employee ID after login
+            let currentEmployeeId = '';
+
+            // Function to add a message to the chat
+            function addMessage(text, isUser) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(isUser ? 'user-message' : 'assistant-message');
+                messageDiv.textContent = text;
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // Show loading indicator
+            function showLoading(show) {
+                loadingIndicator.style.display = show ? 'block' : 'none';
+            }
+
+            // Handle login
+            loginButton.addEventListener('click', async () => {
+                const employeeId = employeeIdInput.value.trim();
+
+                if (!employeeId) {
+                    alert('Please enter your Employee ID');
+                    return;
+                }
+
+                try {
+                    showLoading(true);
+
+                    // Call the API with an empty message to get the initial greeting
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            employee_id: employeeId,
+                            message: ''
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to login');
+                    }
+
+                    const data = await response.json();
+
+                    // Store employee ID
+                    currentEmployeeId = employeeId;
+
+                    // Show chat section
+                    loginSection.style.display = 'none';
+                    chatSection.style.display = 'flex';
+
+                    // Display welcome message
+                    addMessage(data.response, false);
+
+                    // Focus on message input
+                    messageInput.focus();
+
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                } finally {
+                    showLoading(false);
+                }
+            });
+
+            // Handle sending messages
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Handle tool buttons
+            toolButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const query = button.getAttribute('data-query');
+                    messageInput.value = query;
+                    sendMessage();
+                });
+            });
+
+            async function sendMessage() {
+                const message = messageInput.value.trim();
+
+                if (!message) return;
+
+                // Display user message
+                addMessage(message, true);
+
+                // Clear input
+                messageInput.value = '';
+
+                // Show loading indicator
+                showLoading(true);
+
+                try {
+                    // Call the API
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            employee_id: currentEmployeeId,
+                            message: message
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to get response');
+                    }
+
+                    const data = await response.json();
+
+                    // Display assistant message
+                    addMessage(data.response, false);
+
+                } catch (error) {
+                    addMessage('Sorry, there was an error processing your request.', false);
+                    console.error(error);
+                } finally {
+                    showLoading(false);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

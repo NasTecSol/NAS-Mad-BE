@@ -1,0 +1,130 @@
+2025-04-23 14:29:26,051 - hr_assistant - WARNING - Simulated API module not found. API simulation will not be available.
+2025-04-23 14:29:34,396 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 14:29:34,396 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 14:29:34,396 - hr_assistant - INFO - Attempting login for user: {'empId': 'EMP103', 'password': '123456', 'macAddress': '206.84.153.69'}
+2025-04-23 14:29:35,865 - hr_assistant - ERROR - An unexpected error occurred during JWT processing: The token is not yet valid (iat)
+2025-04-23 14:29:35,865 - hr_assistant - ERROR - Login error: JWT processing error: The token is not yet valid (iat)
+2025-04-23 14:29:35,867 - hr_assistant - ERROR - Failed to get token for employee: EMP103
+2025-04-23 14:29:35,867 - hr_assistant - ERROR - Failed to get employee data: Authentication failed
+2025-04-23 14:30:02,146 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 14:30:02,146 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 14:30:02,146 - hr_assistant - INFO - Attempting login for user: {'empId': 'EMP103', 'password': '123456', 'macAddress': '206.84.153.69'}
+2025-04-23 14:30:03,685 - hr_assistant - INFO - JWT decoded and verified successfully.
+2025-04-23 14:30:03,685 - hr_assistant - INFO - Login successful for user: EMP103
+2025-04-23 14:30:04,718 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 14:30:04,720 - hr_assistant - ERROR - Unexpected error in chat endpoint: Client.__init__() got an unexpected keyword argument 'proxies'
+2025-04-23 14:35:24,589 - hr_assistant - WARNING - Simulated API module not found. API simulation will not be available.
+2025-04-23 14:35:31,465 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 14:35:31,465 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 14:35:31,465 - hr_assistant - INFO - Attempting login for user: {'empId': 'EMP103', 'password': '123456', 'macAddress': '206.84.153.69'}
+2025-04-23 14:35:33,653 - hr_assistant - INFO - JWT decoded and verified successfully.
+2025-04-23 14:35:33,654 - hr_assistant - INFO - Login successful for user: EMP103
+2025-04-23 14:35:34,627 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 14:35:34,629 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 14:35:34,629 - hr_assistant - ERROR - Unexpected error in chat endpoint: Client.__init__() got an unexpected keyword argument 'proxies'
+2025-04-23 15:01:52,358 - hr_assistant - WARNING - Simulated API module not found. API simulation will not be available.
+2025-04-23 15:02:10,667 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 15:02:10,668 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 15:02:10,668 - hr_assistant - INFO - Attempting login for user: {'empId': 'EMP103', 'password': '123456', 'macAddress': '206.84.153.69'}
+2025-04-23 15:02:12,681 - hr_assistant - INFO - JWT decoded and verified successfully.
+2025-04-23 15:02:12,681 - hr_assistant - INFO - Login successful for user: EMP103
+2025-04-23 15:02:13,602 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 15:02:13,603 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 15:02:16,599 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/assistants/asst_jJJpthCMDPcR2VtyafbhzpVI "HTTP/1.1 200 OK"
+2025-04-23 15:02:16,618 - hr_assistant - INFO - Using existing assistant with ID: asst_jJJpthCMDPcR2VtyafbhzpVI
+2025-04-23 15:02:17,058 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads "HTTP/1.1 200 OK"
+2025-04-23 15:02:17,060 - hr_assistant - INFO - Created new thread with ID: thread_2l3d6CourDVgzlq5LMkH8aKD
+2025-04-23 15:02:17,899 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_2l3d6CourDVgzlq5LMkH8aKD/messages "HTTP/1.1 200 OK"
+2025-04-23 15:02:18,121 - hr_assistant - INFO - Sending initial greeting to employee: EMP103
+2025-04-23 15:02:27,786 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 15:02:27,786 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 15:02:28,696 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 15:02:28,698 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 15:02:30,292 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/assistants/asst_jJJpthCMDPcR2VtyafbhzpVI "HTTP/1.1 200 OK"
+2025-04-23 15:02:30,599 - hr_assistant - INFO - Using existing assistant with ID: asst_jJJpthCMDPcR2VtyafbhzpVI
+2025-04-23 15:02:31,742 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads "HTTP/1.1 200 OK"
+2025-04-23 15:02:31,742 - hr_assistant - INFO - Created new thread with ID: thread_4idT66iJQmsWuaTqjDHYCp7T
+2025-04-23 15:02:32,442 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_4idT66iJQmsWuaTqjDHYCp7T/messages "HTTP/1.1 200 OK"
+2025-04-23 15:02:32,677 - hr_assistant - INFO - Processing query for employee EMP103: Show my profile details
+2025-04-23 15:02:33,174 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_4idT66iJQmsWuaTqjDHYCp7T/messages "HTTP/1.1 200 OK"
+2025-04-23 15:02:34,287 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_4idT66iJQmsWuaTqjDHYCp7T/runs "HTTP/1.1 200 OK"
+2025-04-23 15:02:34,819 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_4idT66iJQmsWuaTqjDHYCp7T/runs/run_3QIivcGRMk4EV4kdx8HpcCjJ "HTTP/1.1 200 OK"
+2025-04-23 15:02:45,328 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_4idT66iJQmsWuaTqjDHYCp7T/runs/run_3QIivcGRMk4EV4kdx8HpcCjJ "HTTP/1.1 200 OK"
+2025-04-23 15:02:55,881 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_4idT66iJQmsWuaTqjDHYCp7T/runs/run_3QIivcGRMk4EV4kdx8HpcCjJ "HTTP/1.1 200 OK"
+2025-04-23 15:02:56,634 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_4idT66iJQmsWuaTqjDHYCp7T/messages "HTTP/1.1 200 OK"
+2025-04-23 15:09:04,477 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 15:09:04,478 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 15:09:05,521 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 15:09:05,523 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 15:09:06,645 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/assistants/asst_jJJpthCMDPcR2VtyafbhzpVI "HTTP/1.1 200 OK"
+2025-04-23 15:09:06,646 - hr_assistant - INFO - Using existing assistant with ID: asst_jJJpthCMDPcR2VtyafbhzpVI
+2025-04-23 15:09:07,618 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads "HTTP/1.1 200 OK"
+2025-04-23 15:09:07,619 - hr_assistant - INFO - Created new thread with ID: thread_R7GTkX04fjcwTQFmnOCdo3RD
+2025-04-23 15:09:08,156 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_R7GTkX04fjcwTQFmnOCdo3RD/messages "HTTP/1.1 200 OK"
+2025-04-23 15:09:08,490 - hr_assistant - INFO - Processing query for employee EMP103: Show my attendance this month
+2025-04-23 15:09:09,105 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_R7GTkX04fjcwTQFmnOCdo3RD/messages "HTTP/1.1 200 OK"
+2025-04-23 15:09:10,403 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_R7GTkX04fjcwTQFmnOCdo3RD/runs "HTTP/1.1 200 OK"
+2025-04-23 15:09:10,945 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_R7GTkX04fjcwTQFmnOCdo3RD/runs/run_PDPEyQFhZGHUhRt7MT9JsSTB "HTTP/1.1 200 OK"
+2025-04-23 15:09:21,492 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_R7GTkX04fjcwTQFmnOCdo3RD/runs/run_PDPEyQFhZGHUhRt7MT9JsSTB "HTTP/1.1 200 OK"
+2025-04-23 15:09:32,051 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_R7GTkX04fjcwTQFmnOCdo3RD/runs/run_PDPEyQFhZGHUhRt7MT9JsSTB "HTTP/1.1 200 OK"
+2025-04-23 15:09:32,406 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_R7GTkX04fjcwTQFmnOCdo3RD/messages "HTTP/1.1 200 OK"
+2025-04-23 15:19:11,431 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 15:19:11,431 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 15:19:12,798 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 15:19:12,799 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 15:19:13,814 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/assistants/asst_jJJpthCMDPcR2VtyafbhzpVI "HTTP/1.1 200 OK"
+2025-04-23 15:19:13,815 - hr_assistant - INFO - Using existing assistant with ID: asst_jJJpthCMDPcR2VtyafbhzpVI
+2025-04-23 15:19:14,288 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads "HTTP/1.1 200 OK"
+2025-04-23 15:19:14,288 - hr_assistant - INFO - Created new thread with ID: thread_nLxdWnB2FDDQCFXexlyDskS7
+2025-04-23 15:19:15,414 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_nLxdWnB2FDDQCFXexlyDskS7/messages "HTTP/1.1 200 OK"
+2025-04-23 15:19:15,683 - hr_assistant - INFO - Processing query for employee EMP103: What's my leave balance?
+2025-04-23 15:19:16,843 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_nLxdWnB2FDDQCFXexlyDskS7/messages "HTTP/1.1 200 OK"
+2025-04-23 15:19:18,081 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_nLxdWnB2FDDQCFXexlyDskS7/runs "HTTP/1.1 200 OK"
+2025-04-23 15:19:18,603 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_nLxdWnB2FDDQCFXexlyDskS7/runs/run_8A5JX8g5GiIIgJuINLbOwuDN "HTTP/1.1 200 OK"
+2025-04-23 15:19:29,153 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_nLxdWnB2FDDQCFXexlyDskS7/runs/run_8A5JX8g5GiIIgJuINLbOwuDN "HTTP/1.1 200 OK"
+2025-04-23 15:19:30,055 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_nLxdWnB2FDDQCFXexlyDskS7/messages "HTTP/1.1 200 OK"
+2025-04-23 15:19:43,853 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 15:19:43,853 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 15:19:44,852 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 15:19:44,854 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 15:19:45,544 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/assistants/asst_jJJpthCMDPcR2VtyafbhzpVI "HTTP/1.1 200 OK"
+2025-04-23 15:19:45,545 - hr_assistant - INFO - Using existing assistant with ID: asst_jJJpthCMDPcR2VtyafbhzpVI
+2025-04-23 15:19:45,975 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads "HTTP/1.1 200 OK"
+2025-04-23 15:19:45,976 - hr_assistant - INFO - Created new thread with ID: thread_8gSz8VxjqBxCiYwCx79ATXwH
+2025-04-23 15:19:46,637 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_8gSz8VxjqBxCiYwCx79ATXwH/messages "HTTP/1.1 200 OK"
+2025-04-23 15:19:46,897 - hr_assistant - INFO - Processing query for employee EMP103: Show my attendance this month
+2025-04-23 15:19:47,429 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_8gSz8VxjqBxCiYwCx79ATXwH/messages "HTTP/1.1 200 OK"
+2025-04-23 15:19:48,439 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_8gSz8VxjqBxCiYwCx79ATXwH/runs "HTTP/1.1 200 OK"
+2025-04-23 15:19:49,511 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_8gSz8VxjqBxCiYwCx79ATXwH/runs/run_GJZmm31TD9MJ8oJoqRI2rXzU "HTTP/1.1 200 OK"
+2025-04-23 15:20:00,059 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_8gSz8VxjqBxCiYwCx79ATXwH/runs/run_GJZmm31TD9MJ8oJoqRI2rXzU "HTTP/1.1 200 OK"
+2025-04-23 15:20:00,468 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_8gSz8VxjqBxCiYwCx79ATXwH/messages "HTTP/1.1 200 OK"
+2025-04-23 15:22:25,052 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 15:22:25,053 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 15:22:27,295 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 15:22:27,297 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 15:22:28,461 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/assistants/asst_jJJpthCMDPcR2VtyafbhzpVI "HTTP/1.1 200 OK"
+2025-04-23 15:22:28,462 - hr_assistant - INFO - Using existing assistant with ID: asst_jJJpthCMDPcR2VtyafbhzpVI
+2025-04-23 15:22:29,462 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads "HTTP/1.1 200 OK"
+2025-04-23 15:22:29,463 - hr_assistant - INFO - Created new thread with ID: thread_QsTPdR9DBQoEj8smhdSnnkw7
+2025-04-23 15:22:29,980 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_QsTPdR9DBQoEj8smhdSnnkw7/messages "HTTP/1.1 200 OK"
+2025-04-23 15:22:30,243 - hr_assistant - INFO - Processing query for employee EMP103: What's my leave balance?
+2025-04-23 15:22:31,348 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_QsTPdR9DBQoEj8smhdSnnkw7/messages "HTTP/1.1 200 OK"
+2025-04-23 15:22:32,886 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_QsTPdR9DBQoEj8smhdSnnkw7/runs "HTTP/1.1 200 OK"
+2025-04-23 15:22:33,322 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_QsTPdR9DBQoEj8smhdSnnkw7/runs/run_8iJsz1aG8g3kuenhUAiRmjXg "HTTP/1.1 200 OK"
+2025-04-23 15:22:43,800 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_QsTPdR9DBQoEj8smhdSnnkw7/runs/run_8iJsz1aG8g3kuenhUAiRmjXg "HTTP/1.1 200 OK"
+2025-04-23 15:22:44,139 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_QsTPdR9DBQoEj8smhdSnnkw7/messages "HTTP/1.1 200 OK"
+2025-04-23 15:22:52,153 - hr_assistant - INFO - Chat request received for employee: EMP103
+2025-04-23 15:22:52,153 - hr_assistant - INFO - Fetching employee data for: EMP103
+2025-04-23 15:22:53,167 - hr_assistant - INFO - Successfully retrieved ID for employee: EMP103
+2025-04-23 15:22:53,168 - hr_assistant - INFO - initialising open ai client with ID: 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
+2025-04-23 15:22:53,755 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/assistants/asst_jJJpthCMDPcR2VtyafbhzpVI "HTTP/1.1 200 OK"
+2025-04-23 15:22:53,756 - hr_assistant - INFO - Using existing assistant with ID: asst_jJJpthCMDPcR2VtyafbhzpVI
+2025-04-23 15:22:54,198 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads "HTTP/1.1 200 OK"
+2025-04-23 15:22:54,199 - hr_assistant - INFO - Created new thread with ID: thread_Y4BAfAyGcw93eWrNJNXdNlnN
+2025-04-23 15:22:54,691 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_Y4BAfAyGcw93eWrNJNXdNlnN/messages "HTTP/1.1 200 OK"
+2025-04-23 15:22:54,755 - hr_assistant - INFO - Processing query for employee EMP103: Show my attendance this month
+2025-04-23 15:22:58,488 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_Y4BAfAyGcw93eWrNJNXdNlnN/messages "HTTP/1.1 200 OK"
+2025-04-23 15:23:01,730 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/threads/thread_Y4BAfAyGcw93eWrNJNXdNlnN/runs "HTTP/1.1 200 OK"
+2025-04-23 15:23:02,479 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_Y4BAfAyGcw93eWrNJNXdNlnN/runs/run_i8pEMn3WVPpLtwVNvyCkhYDh "HTTP/1.1 200 OK"
+2025-04-23 15:23:13,122 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_Y4BAfAyGcw93eWrNJNXdNlnN/runs/run_i8pEMn3WVPpLtwVNvyCkhYDh "HTTP/1.1 200 OK"
+2025-04-23 15:23:13,496 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/threads/thread_Y4BAfAyGcw93eWrNJNXdNlnN/messages "HTTP/1.1 200 OK"

@@ -1,0 +1,10 @@
+fastapi==0.110.0
+uvicorn==0.27.1
+python-dotenv==1.0.1
+requests==2.31.0
+openai==1.75.0
+
+# For langchain, use specific versions that work with Python 3.13
+pydantic>=2.6.1
+
+# Skip tiktoken or use compatible alternatives
