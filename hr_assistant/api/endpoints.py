@@ -5,8 +5,10 @@ class EndpointType(Enum):
     LOGIN = "login"
     EMPLOYEE_DATA = "employee_data"
     ATTENDANCE = "attendance"
+    TEAM_DATA = "team_data"
+    TEAM_ATTENDANCE = "team_attendance"
     LEAVE = "leave"
-    PAYROLL = "payroll"
+    PAYROLL = "payroll" 
 
 @dataclass
 class Endpoint:
@@ -43,6 +45,27 @@ class EndpointManager:
                 method="GET",
                 requires_auth=True,
                 description="Get employee attendance records"
+            ),
+            EndpointType.ATTENDANCE: Endpoint(
+                type=EndpointType.ATTENDANCE,
+                path="/c-emp-attendance/getDataByEmployeeId/{employee_db_id}/{start_date}/{end_date}",
+                method="GET",
+                requires_auth=True,
+                description="Get employee attendance records for a date range"
+            ),
+            EndpointType.TEAM_DATA: Endpoint(
+                type=EndpointType.TEAM_DATA,
+                path="/branches/getTeamData/{branch_id}/{department_id}/{employee_db_id}",
+                method="GET",
+                requires_auth=True,
+                description="Get team data for a manager"
+            ),
+            EndpointType.TEAM_ATTENDANCE: Endpoint(
+                type=EndpointType.TEAM_ATTENDANCE,
+                path="/c-emp-attendance/getDataByEmployeeId/{employee_id_list}/{start_date}/{end_date}",
+                method="GET",
+                requires_auth=True,
+                description="Get attendance records for multiple employees"
             )
             # Add more endpoints as needed
         }
