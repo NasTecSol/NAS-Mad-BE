@@ -6,12 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Assistant</title>
     <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --primary-light: #d1e7ff;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --gray-light: #f5f5f5;
+            --gray-dark: #777;
+            --border-color: #ddd;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
+            line-height: 1.6;
         }
 
         .container {
@@ -24,6 +37,8 @@
         h1 {
             color: #2c3e50;
             text-align: center;
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 15px;
         }
 
         .login-form {
@@ -35,57 +50,75 @@
 
         input {
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             font-size: 16px;
         }
 
         button {
             padding: 10px 15px;
-            background-color: #3498db;
+            background-color: var(--primary-color);
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
+            transition: background-color 0.2s;
         }
 
         button:hover {
-            background-color: #2980b9;
+            background-color: var(--primary-dark);
         }
 
         .chat-container {
             display: none;
             flex-direction: column;
-            height: 500px;
-            gap: 10px;
+            height: 550px;
+            gap: 15px;
         }
 
         .messages {
             flex-grow: 1;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
-            padding: 10px;
+            padding: 15px;
             overflow-y: auto;
             background-color: #f9f9f9;
         }
 
         .message {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 5px;
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            max-width: 85%;
+            position: relative;
         }
 
         .user-message {
-            background-color: #d1e7ff;
-            margin-left: 20%;
+            background-color: var(--primary-light);
+            margin-left: auto;
             margin-right: 5px;
+            text-align: right;
         }
 
         .assistant-message {
             background-color: #e5e5e5;
-            margin-right: 20%;
+            margin-right: auto;
             margin-left: 5px;
+        }
+
+        .formatted-content {
+            white-space: pre-wrap;
+            font-family: inherit;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--gray-dark);
+            display: block;
+            margin-top: 5px;
         }
 
         .input-container {
@@ -98,7 +131,8 @@
         }
 
         .tools-section {
-            margin-top: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -111,6 +145,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
+            transition: background-color 0.2s;
         }
 
         .tool-button:hover {
@@ -119,10 +154,129 @@
 
         .loading {
             text-align: center;
-            margin: 10px 0;
+            margin: 15px 0;
             font-style: italic;
-            color: #777;
+            color: var(--gray-dark);
             display: none;
+        }
+
+        /* Attendance Formatting Styles */
+        .attendance-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: white;
+        }
+
+        .attendance-header {
+            font-weight: bold;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .attendance-section {
+            margin-bottom: 15px;
+        }
+
+        .attendance-total {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .attendance-detail {
+            padding-left: 20px;
+            color: var(--gray-dark);
+        }
+
+        .attendance-analysis {
+            background-color: var(--gray-light);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .employee-section {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .employee-name {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        /* Language Toggle */
+        .language-toggle {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .language-btn {
+            padding: 5px 10px;
+            background-color: var(--gray-light);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .language-btn.active {
+            background-color: var(--primary-light);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        /* Icons */
+        .icon-success { color: var(--success-color); }
+        .icon-warning { color: var(--warning-color); }
+        .icon-danger { color: var(--danger-color); }
+
+        /* User info bar */
+        .user-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            background-color: var(--primary-light);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--gray-dark);
+        }
+
+        .info-value {
+            font-weight: bold;
+        }
+
+        /* RTL Support */
+        [dir="rtl"] .user-message {
+            margin-right: auto;
+            margin-left: 5px;
+            text-align: left;
+        }
+
+        [dir="rtl"] .assistant-message {
+            margin-left: auto;
+            margin-right: 5px;
+        }
+
+        [dir="rtl"] .attendance-detail {
+            padding-right: 20px;
+            padding-left: 0;
         }
     </style>
 </head>
@@ -131,21 +285,54 @@
     <div class="container">
         <h1>HR Assistant</h1>
 
+        <div class="language-toggle">
+            <button class="language-btn active" data-lang="en">English</button>
+            <button class="language-btn" data-lang="ar">العربية</button>
+        </div>
+
         <div id="login-section">
             <div class="login-form">
                 <input type="text" id="employee-id" placeholder="Enter your Employee ID (e.g., EMP103)" value="EMP103">
+                <input type="text" id="employee-name" placeholder="Your Full Name" value="John Doe">
+                <select id="employee-grade">
+                    <option value="L4">Employee (L4)</option>
+                    <option value="L3">Manager (L3)</option>
+                    <option value="L2">Senior Manager (L2)</option>
+                    <option value="L1">Director (L1)</option>
+                    <option value="L0">Executive (L0)</option>
+                </select>
                 <button id="login-button">Login</button>
             </div>
         </div>
 
         <div id="chat-section" class="chat-container">
-            <div class="messages" id="messages"></div>
-            <div class="loading" id="loading">Assistant is thinking...</div>
-            <div class="tools-section">
-                <button class="tool-button" data-query="Show my attendance this month">My Attendance</button>
-                <button class="tool-button" data-query="Show my profile details">My Profile</button>
-                <button class="tool-button" data-query="What's my leave balance?">Leave Balance</button>
+            <div class="user-info">
+                <div class="info-item">
+                    <span class="info-label" data-en="Employee ID" data-ar="رقم الموظف">Employee ID</span>
+                    <span class="info-value" id="info-employee-id">EMP103</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label" data-en="Name" data-ar="الاسم">Name</span>
+                    <span class="info-value" id="info-employee-name">John Doe</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label" data-en="Grade" data-ar="المستوى">Grade</span>
+                    <span class="info-value" id="info-employee-grade">L4</span>
+                </div>
             </div>
+
+            <div class="messages" id="messages"></div>
+            <div class="loading" id="loading" data-en="Assistant is thinking..." data-ar="المساعد يفكر...">Assistant is thinking...</div>
+            
+            <div class="tools-section">
+                <button class="tool-button" data-query="Show my attendance this month" data-en="My Attendance" data-ar="سجل الحضور">My Attendance</button>
+                <button class="tool-button" data-query="Show my profile details" data-en="My Profile" data-ar="ملفي الشخصي">My Profile</button>
+                <button class="tool-button" data-query="What's my leave balance?" data-en="Leave Balance" data-ar="رصيد الإجازات">Leave Balance</button>
+                <button class="tool-button" data-query="Show my team's attendance for this month" data-en="Team Attendance" data-ar="حضور الفريق">Team Attendance</button>
+                <button class="tool-button" data-query="Do I have any pending approvals?" data-en="Pending Approvals" data-ar="الموافقات المعلقة">Pending Approvals</button>
+                <button class="tool-button" data-query="What events do I have this week?" data-en="Upcoming Events" data-ar="الأحداث القادمة">Upcoming Events</button>
+            </div>
+            
             <div class="input-container">
                 <input type="text" id="message-input" placeholder="Type your question...">
                 <button id="send-button">Send</button>
@@ -160,25 +347,236 @@
             const messagesContainer = document.getElementById('messages');
             const loadingIndicator = document.getElementById('loading');
             const employeeIdInput = document.getElementById('employee-id');
+            const employeeNameInput = document.getElementById('employee-name');
+            const employeeGradeSelect = document.getElementById('employee-grade');
             const messageInput = document.getElementById('message-input');
             const loginButton = document.getElementById('login-button');
             const sendButton = document.getElementById('send-button');
             const toolButtons = document.querySelectorAll('.tool-button');
+            const languageButtons = document.querySelectorAll('.language-btn');
+            
+            // User info elements
+            const infoEmployeeId = document.getElementById('info-employee-id');
+            const infoEmployeeName = document.getElementById('info-employee-name');
+            const infoEmployeeGrade = document.getElementById('info-employee-grade');
 
             // API endpoint
             const API_URL = '/chat';
 
-            // Store the employee ID after login
+            // Store the employee ID and current language
             let currentEmployeeId = '';
+            let currentLanguage = 'en';
+            
+            // Language toggle
+            languageButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Update active language
+                    currentLanguage = button.getAttribute('data-lang');
+                    
+                    // Update UI for active button
+                    languageButtons.forEach(btn => {
+                        btn.classList.toggle('active', btn.getAttribute('data-lang') === currentLanguage);
+                    });
+                    
+                    // Set document direction
+                    document.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
+                    
+                    // Update tool buttons text
+                    updateLanguageTexts();
+                });
+            });
+            
+            // Update text based on language
+            function updateLanguageTexts() {
+                // Update tool buttons
+                toolButtons.forEach(button => {
+                    const key = currentLanguage === 'ar' ? 'data-ar' : 'data-en';
+                    if (button.hasAttribute(key)) {
+                        button.textContent = button.getAttribute(key);
+                    }
+                });
+                
+                // Update other UI elements with language attributes
+                document.querySelectorAll('[data-en]').forEach(el => {
+                    const key = currentLanguage === 'ar' ? 'data-ar' : 'data-en';
+                    if (el.hasAttribute(key)) {
+                        el.textContent = el.getAttribute(key);
+                    }
+                });
+                
+                // Update input placeholder
+                messageInput.placeholder = currentLanguage === 'ar' ? 'اكتب سؤالك...' : 'Type your question...';
+                
+                // Update button text
+                sendButton.textContent = currentLanguage === 'ar' ? 'إرسال' : 'Send';
+                loginButton.textContent = currentLanguage === 'ar' ? 'تسجيل الدخول' : 'Login';
+            }
 
             // Function to add a message to the chat
             function addMessage(text, isUser) {
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message');
                 messageDiv.classList.add(isUser ? 'user-message' : 'assistant-message');
-                messageDiv.textContent = text;
+                
+                // Check if this contains structured data (like attendance records)
+                if (!isUser && containsStructuredData(text)) {
+                    messageDiv.innerHTML = formatStructuredContent(text);
+                } else {
+                    // Regular text with line breaks preserved
+                    messageDiv.innerHTML = formatMessageText(text);
+                }
+                
+                // Add timestamp
+                const timeStamp = document.createElement('span');
+                timeStamp.classList.add('message-time');
+                timeStamp.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                messageDiv.appendChild(timeStamp);
+                
                 messagesContainer.appendChild(messageDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Format regular message text
+            function formatMessageText(text) {
+                return text
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            }
+            
+            // Check if content contains structured data
+            function containsStructuredData(content) {
+                const patterns = [
+                    "Total Present Days:",
+                    "Total Absent Days:",
+                    "Total Missing Check In/Out:",
+                    "Late Comings:",
+                    "Attendance Analysis:",
+                    "Here's your attendance",
+                    "Here's your team attendance",
+                    // Arabic patterns
+                    "سجل حضورك",
+                    "إجمالي أيام الحضور",
+                    "إجمالي أيام الغياب"
+                ];
+                
+                return patterns.some(pattern => content.includes(pattern));
+            }
+            
+            // Format structured content for better display
+            function formatStructuredContent(content) {
+                if (isAttendanceData(content)) {
+                    return formatAttendanceData(content);
+                }
+                
+                // Default formatting just preserves line breaks
+                return formatMessageText(content);
+            }
+            
+            // Check if content is attendance data
+            function isAttendanceData(content) {
+                return content.includes("Total Present Days:") || 
+                       content.includes("Here's your attendance") ||
+                       content.includes("سجل حضورك") ||
+                       content.includes("إجمالي أيام الحضور");
+            }
+            
+            // Format attendance data
+            function formatAttendanceData(content) {
+                const lines = content.split('\n');
+                let html = '<div class="formatted-content">';
+                html += '<div class="attendance-container">';
+                
+                // Track current section
+                let currentSection = '';
+                
+                lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    
+                    // Skip empty lines
+                    if (!trimmedLine) return;
+                    
+                    // Header line
+                    if (trimmedLine.startsWith("Here's your attendance") || 
+                        trimmedLine.startsWith("سجل حضورك")) {
+                        html += `<div class="attendance-header">${trimmedLine}</div>`;
+                    }
+                    // Employee section for team attendance
+                    else if (trimmedLine.startsWith("**")) {
+                        html += `<div class="employee-section">${trimmedLine.replace('**', '<span class="employee-name">')}</span></div>`;
+                    }
+                    // Main sections
+                    else if (trimmedLine.startsWith("* Total Present Days:") || 
+                             trimmedLine.startsWith("* إجمالي أيام الحضور")) {
+                        currentSection = 'present';
+                        html += `<div class="attendance-section">
+                                    <div class="attendance-total icon-success">✅ ${trimmedLine.substring(2)}</div>`;
+                    }
+                    else if (trimmedLine.startsWith("* Total Absent Days:") || 
+                             trimmedLine.startsWith("* إجمالي أيام الغياب")) {
+                        if (currentSection) html += '</div>';
+                        currentSection = 'absent';
+                        html += `<div class="attendance-section">
+                                    <div class="attendance-total icon-danger">❌ ${trimmedLine.substring(2)}</div>`;
+                    }
+                    else if (trimmedLine.startsWith("* Total Missing Check In/Out:") || 
+                             trimmedLine.startsWith("* Total Missing Check")) {
+                        if (currentSection) html += '</div>';
+                        currentSection = 'missing';
+                        html += `<div class="attendance-section">
+                                    <div class="attendance-total icon-warning">⚠️ ${trimmedLine.substring(2)}</div>`;
+                    }
+                    else if (trimmedLine.startsWith("* Late Comings:") || 
+                             trimmedLine.startsWith("* Late")) {
+                        if (currentSection) html += '</div>';
+                        currentSection = 'late';
+                        html += `<div class="attendance-section">
+                                    <div class="attendance-total icon-warning">⏰ ${trimmedLine.substring(2)}</div>`;
+                    }
+                    // Details lines
+                    else if (trimmedLine.startsWith("   *")) {
+                        html += `<div class="attendance-detail">${trimmedLine.substring(5)}</div>`;
+                    }
+                    // Analysis section
+                    else if (trimmedLine.startsWith("Attendance Analysis") || 
+                             trimmedLine.includes("Analysis") || 
+                             trimmedLine.includes("تحليل")) {
+                        if (currentSection) html += '</div>';
+                        currentSection = 'analysis';
+                        html += `<h3>${trimmedLine}</h3><div class="attendance-analysis">`;
+                    }
+                    // Analysis content with icon markers
+                    else if (currentSection === 'analysis') {
+                        let iconizedLine = trimmedLine;
+                        
+                        // Add icons based on content
+                        if (!iconizedLine.includes("✅") && !iconizedLine.includes("⚠️") && !iconizedLine.includes("❗")) {
+                            if (iconizedLine.includes("excellent") || iconizedLine.includes("great") || 
+                                iconizedLine.includes("100%") || iconizedLine.includes("ممتاز")) {
+                                iconizedLine = "✅ " + iconizedLine;
+                            }
+                            else if (iconizedLine.includes("could be improved") || iconizedLine.includes("late") || 
+                                     iconizedLine.includes("missing") || iconizedLine.includes("تحسين")) {
+                                iconizedLine = "⚠️ " + iconizedLine;
+                            }
+                            else if (iconizedLine.includes("low") || iconizedLine.includes("absent") || 
+                                     iconizedLine.includes("never") || iconizedLine.includes("منخفض")) {
+                                iconizedLine = "❗ " + iconizedLine;
+                            }
+                        }
+                        
+                        html += `<p>${iconizedLine}</p>`;
+                    }
+                    // Other lines
+                    else {
+                        html += `<p>${trimmedLine}</p>`;
+                    }
+                });
+                
+                // Close any open section
+                if (currentSection) html += '</div>';
+                
+                html += '</div></div>';
+                return html;
             }
 
             // Show loading indicator
@@ -189,6 +587,8 @@
             // Handle login
             loginButton.addEventListener('click', async () => {
                 const employeeId = employeeIdInput.value.trim();
+                const employeeName = employeeNameInput.value.trim();
+                const employeeGrade = employeeGradeSelect.value;
 
                 if (!employeeId) {
                     alert('Please enter your Employee ID');
@@ -198,6 +598,11 @@
                 try {
                     showLoading(true);
 
+                    // Update user info display
+                    infoEmployeeId.textContent = employeeId;
+                    infoEmployeeName.textContent = employeeName;
+                    infoEmployeeGrade.textContent = employeeGrade;
+
                     // Call the API with an empty message to get the initial greeting
                     const response = await fetch(API_URL, {
                         method: 'POST',
@@ -206,7 +611,8 @@
                         },
                         body: JSON.stringify({
                             employee_id: employeeId,
-                            message: ''
+                            message: '',
+                            language: currentLanguage
                         })
                     });
 
@@ -276,7 +682,8 @@
                         },
                         body: JSON.stringify({
                             employee_id: currentEmployeeId,
-                            message: message
+                            message: message,
+                            language: currentLanguage
                         })
                     });
 
@@ -296,6 +703,9 @@
                     showLoading(false);
                 }
             }
+            
+            // Initialize language texts
+            updateLanguageTexts();
         });
     </script>
 </body>

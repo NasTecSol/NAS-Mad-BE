@@ -18,7 +18,28 @@ from openai import OpenAI  # Import the OpenAI class
 import modules.auth as auth_module
 import modules.employee as employee_module
 import modules.attendance as attendance_module
+from utils.attendance_formatter import AttendanceFormatter
 
+
+# Import assistant instructions
+try:
+    from hr_assistant.assistant_instructions import get_complete_instructions
+    logger.info("Successfully imported assistant instructions module")
+except ImportError:
+    logger.error("Assistant instructions module not found. Please create assistant_instructions.py in the root directory.")
+    
+    # Fallback function if the module is missing
+    def get_complete_instructions(authenticated_employee_id, employee_name, employee_grade, greeting_instruction=None):
+        greeting_text = greeting_instruction + "\n\n" if greeting_instruction else ""
+        return f"""
+        {greeting_text}
+        
+        IMPORTANT CONTEXT:
+        - The authenticated employee ID is: {authenticated_employee_id}
+        - Employee name: {employee_name}
+        - Employee grade: {employee_grade}
+        """
+    
 # Import simulated API (if available)
 try:
     from simulated_api import add_mock_api
@@ -185,6 +206,16 @@ def handle_tool_calls(required_action):
         function_args = json.loads(tool_call.function.arguments)
         logger.info(f"Processing tool call: {function_name} with args: {function_args}")
         
+        # Get the current authenticated employee ID from the function attribute
+        authenticated_employee_id = getattr(handle_tool_calls, 'current_employee_id', None)
+        
+        # IMPORTANT: Override any employee_id in the function arguments with the authenticated user's ID
+        if authenticated_employee_id and "employee_id" in function_args:
+            original_id = function_args["employee_id"]
+            if original_id != authenticated_employee_id:
+                logger.warning(f"Overriding employee_id in tool call from {original_id} to {authenticated_employee_id}")
+            function_args["employee_id"] = authenticated_employee_id
+        
         result = None
         try:
             if function_name == "get_employee_data":
@@ -211,6 +242,16 @@ def handle_tool_calls(required_action):
             
             elif function_name == "get_team_data":
                 result = hr_service.get_team_data(function_args.get("employee_id"))
+            
+            elif function_name == "get_attendance_report":
+                result = hr_service.get_attendance_report(
+                    function_args.get("employee_id"),
+                    function_args.get("date_type", "today"),
+                    function_args.get("company_id"),
+                    function_args.get("branch_id"),
+                    function_args.get("department_id"),
+                    function_args.get("report_type", "all")
+                )
             
             else:
                 logger.warning(f"Unknown function called by assistant: {function_name}")
@@ -336,6 +377,8 @@ async def chat_endpoint(request: ChatRequest):
             last_name = employee_data.get("lastName", "")
             full_name = f"{first_name} {last_name}".strip()
             employee_name = full_name if full_name else "there"
+            employee_einfo = employee_data.get("employeeInfo", [])[0]
+            employee_grade = employee_einfo.get("grade", "") 
         except Exception as e:
             logger.warning(f"Error extracting employee name: {str(e)}")
             employee_name = "there"
@@ -367,7 +410,6 @@ async def chat_endpoint(request: ChatRequest):
                 
                 # Get or create the assistant
                 assistant = get_assistant(client)
-                
                 # Get or create a thread for this employee
                 thread_id = get_employee_thread(client, request.employee_id)
                 
@@ -400,16 +442,27 @@ async def chat_endpoint(request: ChatRequest):
                 else:
                     greeting_instruction = "No need for formal greeting as we're already in a conversation."
                 
+
+                    assistant_instructions = get_complete_instructions(
+                        authenticated_employee_id=request.employee_id,
+                        employee_name=employee_name,
+                        employee_grade=employee_grade,
+                        greeting_instruction=greeting_instruction
+                            )
+                    
                 # Run the assistant
                 run = client.beta.threads.runs.create(
                     thread_id=thread_id,
                     assistant_id=assistant.id,
-                    instructions=f"{greeting_instruction} Provide helpful information based on the employee data. If the query is about attendance, make sure to call the appropriate attendance function."
+                    instructions=assistant_instructions,
                 )
                 
                 # Process the run including any tool calls
                 max_attempts = 20  # Prevent infinite loops
                 attempt = 0
+                
+                # Set the employee ID before processing any tool calls
+                handle_tool_calls.current_employee_id = request.employee_id
                 
                 while attempt < max_attempts:
                     attempt += 1
@@ -421,6 +474,7 @@ async def chat_endpoint(request: ChatRequest):
                     if run_status.status == "completed":
                         break
                     elif run_status.status == "requires_action":
+                        # Call with just one parameter - the required_action
                         tool_outputs = handle_tool_calls(run_status.required_action)
                         client.beta.threads.runs.submit_tool_outputs(
                             thread_id=thread_id,
@@ -434,7 +488,7 @@ async def chat_endpoint(request: ChatRequest):
                         return ChatResponse(response=f"I apologize, but I encountered an error processing your request. Please try again.")
                     
                     # Wait before checking again (increase delay to avoid rate limits)
-                    time.sleep(1)
+                    time.sleep(2)
                 
                 if attempt >= max_attempts:
                     logger.error("Reached maximum number of attempts waiting for assistant response")
@@ -470,6 +524,329 @@ async def chat_endpoint(request: ChatRequest):
         logger.error(f"Unexpected error in chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
+def get_attendance_report(self, employee_id: str, date_type: str = "today", 
+                       company_id: str = None, branch_id: str = None, department_id: str = None) -> Dict[str, Any]:
+    """
+    Get comprehensive attendance report for all employees, categorized by company, branch, and department.
+    This report is only available to high-level managers (L0-L1) with specific roles.
+    
+    Args:
+        employee_id: Employee ID of the requester
+        date_type: Date range specification ('today', 'yesterday', 'recent', 'this_month', 'previous_month', 
+                  or specific date/range)
+        company_id: Optional filter for specific company
+        branch_id: Optional filter for specific branch
+        department_id: Optional filter for specific department
+        
+    Returns:
+        Dictionary containing attendance report data organized by company/branch/department
+    """
+    logger.info(f"Processing attendance report request for employee: {employee_id}")
+    logger.info(f"Date type: {date_type}, Filters - Company: {company_id}, Branch: {branch_id}, Department: {department_id}")
+    
+    # 1. First, verify the employee has appropriate access level
+    employee_data_result = self.get_employee_data(employee_id)
+    if not employee_data_result["success"]:
+        logger.error(f"Failed to get employee data for authorization check: {employee_data_result['message']}")
+        return {
+            "success": False,
+            "message": "Authorization failed: Unable to verify employee details"
+        }
+    
+    employee_data = employee_data_result["data"]
+    
+    # Check employee grade and role
+    employee_grade = employee_data.get("grade", "")
+    employee_role = employee_data.get("role", "")
+    
+    # Verify the employee is authorized (L0-L1 with appropriate role)
+    is_authorized = (
+        employee_grade in ["L0", "L1"] and 
+        employee_role in ["HR Manager", "admin", "owner"]
+    )
+    
+    if not is_authorized:
+        logger.warning(f"Unauthorized access attempt by employee {employee_id} (Grade: {employee_grade}, Role: {employee_role})")
+        return {
+            "success": False,
+            "message": "You are not authorized to access the attendance report"
+        }
+    
+    # 2. Calculate date range for the report
+    start_date, end_date = self.calculate_date_range(date_type)
+    
+    # For previous month special case
+    if date_type == "previous_month":
+        today = datetime.now().date()
+        # First day of current month
+        first_day_current_month = today.replace(day=1)
+        # Last day of previous month
+        last_day_previous_month = first_day_current_month - timedelta(days=1)
+        # First day of previous month
+        first_day_previous_month = last_day_previous_month.replace(day=1)
+        
+        start_date = first_day_previous_month.strftime("%Y-%m-%d")
+        end_date = last_day_previous_month.strftime("%Y-%m-%d")
+    
+    # 3. Get token for API request
+    token = self.get_token(employee_id)
+    if not token:
+        logger.error(f"Failed to get token for employee: {employee_id}")
+        return {
+            "success": False,
+            "message": "Authentication failed"
+        }
+    
+    # 4. Construct the attendance report URL
+    # We'll use existing endpoint but request all data without filtering by employee ID
+    report_url = f"{settings.HR_API_BASE_URL}/c-emp-attendance/getCompanyAttendance/{start_date}/{end_date}"
+    
+    # Add filters if provided
+    filters = []
+    if company_id:
+        filters.append(f"companyId={company_id}")
+    if branch_id:
+        filters.append(f"branchId={branch_id}")
+    if department_id:
+        filters.append(f"departmentId={department_id}")
+    
+    if filters:
+        report_url += f"?{'&'.join(filters)}"
+    
+    # Add pagination parameters
+    if "?" in report_url:
+        report_url += "&page=0&limit=1000"  # Large limit to get all data
+    else:
+        report_url += "?page=0&limit=1000"  # Large limit to get all data
+    
+    logger.info(f"Attendance report request to: {report_url}")
+    
+    # 5. Make the API request
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(report_url, headers=headers)
+        response.raise_for_status()
+        
+        attendance_data = response.json()
+        
+        if attendance_data.get("statusCode") == 200 and "data" in attendance_data:
+            # 6. Process and organize the data by company/branch/department
+            raw_data = attendance_data["data"]
+            
+            # Organize by company, branch, department
+            organized_data = self._organize_attendance_data(raw_data)
+            
+            # Generate summary statistics
+            summary = self._generate_attendance_summary(organized_data, start_date, end_date)
+            
+            logger.info(f"Successfully retrieved and processed attendance report data")
+            
+            return {
+                "success": True,
+                "data": organized_data,
+                "summary": summary,
+                "date_range": {
+                    "start_date": start_date,
+                    "end_date": end_date
+                },
+                "message": "Attendance report generated successfully",
+                "filters": {
+                    "company_id": company_id,
+                    "branch_id": branch_id,
+                    "department_id": department_id
+                }
+            }
+        else:
+            logger.warning(f"Attendance report response not in expected format: {json.dumps(attendance_data)}")
+            return {
+                "success": False,
+                "message": "Failed to retrieve attendance report: Invalid response format"
+            }
+    except Exception as e:
+        logger.error(f"Error retrieving attendance report: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Failed to retrieve attendance report: {str(e)}"
+        }
+
+def _organize_attendance_data(self, raw_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Organize raw attendance data by company, branch, and department
+    
+    Args:
+        raw_data: List of attendance records
+        
+    Returns:
+        Nested dictionary organized by company > branch > department > employee
+    """
+    organized = {}
+    
+    for record in raw_data:
+        # Extract organizational structure from record
+        company_id = record.get("companyId", "unknown")
+        company_name = record.get("companyName", "Unknown Company")
+        branch_id = record.get("branchId", "unknown")
+        branch_name = record.get("branchName", "Unknown Branch")
+        department_id = record.get("departmentId", "unknown")
+        department_name = record.get("departmentName", "Unknown Department")
+        
+        # Extract employee data
+        employee_id = record.get("employeeId", "unknown")
+        employee_name = f"{record.get('firstName', '')} {record.get('lastName', '')}".strip() or "Unknown Employee"
+        
+        # Create nested structure if it doesn't exist
+        if company_id not in organized:
+            organized[company_id] = {
+                "name": company_name,
+                "branches": {}
+            }
+            
+        if branch_id not in organized[company_id]["branches"]:
+            organized[company_id]["branches"][branch_id] = {
+                "name": branch_name,
+                "departments": {}
+            }
+            
+        if department_id not in organized[company_id]["branches"][branch_id]["departments"]:
+            organized[company_id]["branches"][branch_id]["departments"][department_id] = {
+                "name": department_name,
+                "employees": {}
+            }
+            
+        if employee_id not in organized[company_id]["branches"][branch_id]["departments"][department_id]["employees"]:
+            organized[company_id]["branches"][branch_id]["departments"][department_id]["employees"][employee_id] = {
+                "name": employee_name,
+                "attendance": []
+            }
+        
+        # Add attendance record to employee
+        attendance_info = {
+            "date": record.get("date", ""),
+            "punchIn": record.get("punchIn", ""),
+            "punchOut": record.get("punchOut", ""),
+            "status": record.get("status", ""),
+            "workingHours": record.get("workingHours", 0),
+            "late": record.get("late", False)
+        }
+        
+        organized[company_id]["branches"][branch_id]["departments"][department_id]["employees"][employee_id]["attendance"].append(attendance_info)
+    
+    return organized
+
+def _generate_attendance_summary(self, organized_data: Dict[str, Any], start_date: str, end_date: str) -> Dict[str, Any]:
+    """
+    Generate summary statistics from organized attendance data
+    
+    Args:
+        organized_data: Attendance data organized by company/branch/department/employee
+        start_date: Start date of the report period
+        end_date: End date of the report period
+        
+    Returns:
+        Dictionary containing attendance summary statistics
+    """
+    summary = {
+        "total_companies": 0,
+        "total_branches": 0,
+        "total_departments": 0,
+        "total_employees": 0,
+        "attendance_status": {
+            "present": 0,
+            "absent": 0,
+            "half_day": 0,
+            "leave": 0,
+            "weekend": 0,
+            "holiday": 0,
+            "late": 0
+        },
+        "companies": [],
+        "average_working_hours": 0,
+        "total_working_hours": 0,
+        "date_range": {
+            "start_date": start_date,
+            "end_date": end_date
+        }
+    }
+    
+    total_working_hours = 0
+    total_records_with_hours = 0
+    
+    # Process each company
+    for company_id, company_data in organized_data.items():
+        company_summary = {
+            "id": company_id,
+            "name": company_data["name"],
+            "total_branches": len(company_data["branches"]),
+            "total_employees": 0,
+            "attendance_rate": 0,
+            "late_percentage": 0
+        }
+        
+        company_present = 0
+        company_late = 0
+        company_total = 0
+        
+        # Process each branch
+        for branch_id, branch_data in company_data["branches"].items():
+            branch_employees = 0
+            
+            # Process each department
+            for department_id, department_data in branch_data["departments"].items():
+                department_employees = len(department_data["employees"])
+                branch_employees += department_employees
+                summary["total_departments"] += 1
+                
+                # Process each employee
+                for employee_id, employee_data in department_data["employees"].items():
+                    summary["total_employees"] += 1
+                    company_total += len(employee_data["attendance"])
+                    
+                    # Process attendance records
+                    for record in employee_data["attendance"]:
+                        status = record.get("status", "").lower()
+                        
+                        if status == "present":
+                            summary["attendance_status"]["present"] += 1
+                            company_present += 1
+                        elif status == "absent":
+                            summary["attendance_status"]["absent"] += 1
+                        elif status == "half day":
+                            summary["attendance_status"]["half_day"] += 1
+                        elif status == "leave":
+                            summary["attendance_status"]["leave"] += 1
+                        elif status == "weekend":
+                            summary["attendance_status"]["weekend"] += 1
+                        elif status == "holiday":
+                            summary["attendance_status"]["holiday"] += 1
+                        
+                        if record.get("late", False):
+                            summary["attendance_status"]["late"] += 1
+                            company_late += 1
+                        
+                        # Add working hours to total
+                        working_hours = record.get("workingHours", 0)
+                        if working_hours:
+                            total_working_hours += working_hours
+                            total_records_with_hours += 1
+            
+            summary["total_branches"] += 1
+            company_summary["total_employees"] += branch_employees
+        
+        # Calculate company attendance rate
+        if company_total > 0:
+            company_summary["attendance_rate"] = round((company_present / company_total) * 100, 2)
+            company_summary["late_percentage"] = round((company_late / company_total) * 100, 2)
+        
+        summary["companies"].append(company_summary)
+        summary["total_companies"] += 1
+    
+    # Calculate average working hours
+    if total_records_with_hours > 0:
+        summary["average_working_hours"] = round(total_working_hours / total_records_with_hours, 2)
+    
+    summary["total_working_hours"] = round(total_working_hours, 2)
+    
+    return summary
 # Run the application
 if __name__ == "__main__":
     import uvicorn
