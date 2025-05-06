@@ -863,8 +863,8 @@ class HRService:
             # First day of previous month
             first_day_previous_month = last_day_previous_month.replace(day=1)
 
-            start_date = first_day_previous_month.strftime("%Y-%m-%d")
-            end_date = last_day_previous_month.strftime("%Y-%m-%d")
+            start_date = last_day_previous_month.strftime("%Y-%m-%d") 
+            end_date = first_day_previous_month.strftime("%Y-%m-%d")
 
         # 3. Get token for API request
         token = self.get_token(employee_id)
