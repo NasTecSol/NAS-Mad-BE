@@ -20,10 +20,10 @@ import modules.employee as employee_module
 import modules.attendance as attendance_module
 from utils.attendance_formatter import AttendanceFormatter
 
-
+from modules.assistant_instructions import get_complete_instructions
 # Import assistant instructions
 try:
-    from hr_assistant.assistant_instructions import get_complete_instructions
+    from modules.assistant_instructions import get_complete_instructions
     logger.info("Successfully imported assistant instructions module")
 except ImportError:
     logger.error("Assistant instructions module not found. Please create assistant_instructions.py in the root directory.")
