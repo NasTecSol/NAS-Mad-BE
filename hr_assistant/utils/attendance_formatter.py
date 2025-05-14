@@ -71,7 +71,7 @@ class AttendanceFormatter:
             
             # Group attendance data by employee
             attendance_by_employee = AttendanceFormatter._group_attendance_by_employee(attendance_data, team_data)
-            logger.info(f"initiating formatting response data")
+            logger.info("initiating formatting response data")
             # Build response
             response = f"Here's your team attendance record for {period_desc}:\n"
             
@@ -220,7 +220,7 @@ class AttendanceFormatter:
         end_date = datetime.strptime(date_range['end_date'], "%Y-%m-%d")
         
         # Today
-        if date_range['start_date'] == date_range['end_date']:
+        if start_date == end_date:
             return f"today ({date_range['start_date']})"
         
         # This month

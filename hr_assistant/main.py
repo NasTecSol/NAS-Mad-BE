@@ -2,10 +2,10 @@ import os
 import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 import time
 from config.settings import settings
@@ -150,8 +150,7 @@ def get_employee_data(employee_id: str) -> Dict[str, Any]:
     Get employee data from cache or fetch from service if needed.
     Returns the employee data dictionary.
     """
-    global employee_data_cache
-
+    # Use existing cache dictionary, no need to declare global
     current_time = datetime.now()
 
     # Check if we have cached data that's still valid
@@ -340,8 +339,7 @@ def health_check():
 @app.delete("/cache/{employee_id}")
 def clear_employee_cache(employee_id: str):
     """Clear cached data for a specific employee"""
-    global employee_data_cache
-
+    # No need to declare global as we're just reading and deleting, not reassigning
     if employee_id in employee_data_cache:
         del employee_data_cache[employee_id]
         return {"status": "success", "message": f"Cache cleared for employee {employee_id}"}
@@ -372,7 +370,7 @@ def get_openai_client():
 
 def get_employee_thread(client, employee_id):
     """Get or create a thread for the employee"""
-    global employee_threads
+    # No need to declare global here as we're just reading or modifying, not reassigning
 
     # Check if employee already has a thread
     if employee_id in employee_threads:
@@ -396,21 +394,34 @@ def get_employee_thread(client, employee_id):
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
+async def chat_endpoint(request: Request):
     """Handle chat requests from the frontend"""
     try:
-        # Use the Pydantic model properties directly
-        employee_id = request.employee_id
-        req_message = request.message
-        language = request.language
+        body_bytes = await request.body()
+        body = json.loads(body_bytes)
 
-        # Get employee data from cache or HR service
+        # Extract the data, handling both nested and flat structures
+        data = body.get("request", body)  # Try to get "request" field, if not present use the body itself
+
+        # Extract the required fields
+        employee_id = data.get("employee_id")
+        if not employee_id:
+            return JSONResponse(
+            status_code=400,
+            content={"error": "employee_id is required"}
+            )
+
+        req_message = data.get("message", "")
+        user_language = data.get("language", "en")
+
+        # Now process with these fields
         logger.info(f"Chat request received for employee: {employee_id}")
+        
         employee_data = get_employee_data(employee_id)
 
         # Check if we got valid employee data
         if not employee_data:
-            return ChatResponse(response=f"Error: Unable to retrieve your employee information. Please try again later.")
+            return ChatResponse(response="Error: Unable to retrieve your employee information. Please try again later.")
 
         # Extract employee name
         try:
@@ -471,6 +482,7 @@ async def chat_endpoint(request: ChatRequest):
                     Time of day: {greeting.lower().replace('good ', '')}
                     Employee name: {employee_name}
                     Employee ID: {employee_id}
+                    Language: {user_language}
                     
                     My question: {req_message}
                     """
@@ -531,7 +543,7 @@ async def chat_endpoint(request: ChatRequest):
                         if hasattr(run_status, "last_error"):
                             logger.error(
                                 f"Error details: {run_status.last_error}")
-                        return ChatResponse(response=f"I apologize, but I encountered an error processing your request. Please try again.")
+                        return ChatResponse(response="I apologize, but I encountered an error processing your request. Please try again.")
 
                     # Wait before checking again (increase delay to avoid rate limits)
                     time.sleep(2)
@@ -539,7 +551,7 @@ async def chat_endpoint(request: ChatRequest):
                 if attempt >= max_attempts:
                     logger.error(
                         "Reached maximum number of attempts waiting for assistant response")
-                    return ChatResponse(response=f"I apologize, but it's taking too long to process your request. Please try again later.")
+                    return ChatResponse(response="I apologize, but it's taking too long to process your request. Please try again later.")
 
                 # Get the latest message from the thread
                 messages = client.beta.threads.messages.list(
@@ -560,11 +572,11 @@ async def chat_endpoint(request: ChatRequest):
 
                     response = response_text
                 else:
-                    response = f"I apologize, but I couldn't generate a response. Please try again."
+                    response = "I apologize, but I couldn't generate a response. Please try again."
 
             except Exception as e:
                 logger.error(f"Error generating response: {str(e)}")
-                response = f"I apologize, but I'm having trouble processing your request right now. Please try again later."
+                response = "I apologize, but I'm having trouble processing your request right now. Please try again later."
 
         return ChatResponse(response=response)
 
