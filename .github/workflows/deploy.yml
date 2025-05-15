@@ -1,24 +1,172 @@
-name: Deploy to DigitalOcean
+name: Deploy to Production
 
 on:
   push:
     branches: [ release ]
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy to server
-      uses: appleboy/ssh-action@master
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set deployment status to in_progress
+      uses: bobheadxi/deployments@v1
+      id: deployment
       with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USERNAME }}
+        step: start
+        token: ${{ secrets.GITHUB_TOKEN }}
+        env: production
+        desc: "Deployment in progress"
+    
+    - name: Send Slack notification - Deployment Started
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            "attachments": [
+              {
+                "color": "#FFA500",
+                "author_name": "${{ github.actor }}",
+                "title": "Deployment Started :rocket:",
+                "fields": [
+                  {
+                    "title": "Repository",
+                    "value": "${{ github.repository }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "release",
+                    "short": true
+                  },
+                  {
+                    "title": "Commit",
+                    "value": "${{ github.sha }}",
+                    "short": false
+                  }
+                ],
+                "footer": "GitHub Actions",
+                "ts": ${{ github.event.repository.updated_at }}
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: always()
+    
+    - name: Install SSH key with passphrase
+      uses: shimataro/ssh-key-action@v2
+      with:
         key: ${{ secrets.SERVER_SSH_KEY }}
-        script: |
-          cd ~/apps/NAS-Mad-BE/hr_assistant
-          git fetch origin
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        passphrase: ${{ secrets.SSH_PASSPHRASE }}
+        config: |
+          Host server
+            HostName ${{ secrets.SERVER_HOST }}
+            User ${{ secrets.SERVER_USERNAME }}
+            IdentityFile ~/.ssh/id_rsa
+    
+    - name: Deploy to server
+      id: deploy
+      run: |
+        set -e
+        echo "::group::Connecting to server and pulling latest changes"
+        ssh -o StrictHostKeyChecking=no server '
+          echo "Connected to server"
+          cd /path/to/NAS-Mad-BE
+          echo "Current directory: $(pwd)"
+          echo "Current branch: $(git branch --show-current)"
+          echo "Checking out release branch..."
           git checkout release
+          echo "Pulling latest changes..."
           git pull origin release
+          echo "Latest commit: $(git log -1 --pretty=format:"%h - %an, %ar : %s")"
+          cd hr_assistant
+          echo "Activating virtual environment..."
           source venv/bin/activate
+          echo "Installing requirements..."
           pip install -r requirements.txt
-          sudo supervisorctl restart hr-assistant
+          echo "Restarting service..."
+          sudo systemctl restart hr-assistant
+          echo "Deployment completed successfully!"
+        '
+        echo "::endgroup::"
+        echo "deployment_status=success" >> $GITHUB_OUTPUT
+      continue-on-error: true
+    
+    - name: Check deployment status
+      id: check_status
+      run: |
+        if [ "${{ steps.deploy.outcome }}" == "success" ]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "color=#36a64f" >> $GITHUB_OUTPUT
+          echo "icon=:white_check_mark:" >> $GITHUB_OUTPUT
+          echo "text=Deployment completed successfully!" >> $GITHUB_OUTPUT
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "color=#dc3545" >> $GITHUB_OUTPUT 
+          echo "icon=:x:" >> $GITHUB_OUTPUT
+          echo "text=Deployment failed!" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Update deployment status
+      uses: bobheadxi/deployments@v1
+      with:
+        step: finish
+        token: ${{ secrets.GITHUB_TOKEN }}
+        status: ${{ steps.check_status.outputs.status }}
+        env: production
+        deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+    
+    - name: Monitor application logs after deployment
+      if: steps.deploy.outcome == 'success'
+      run: |
+        ssh -o StrictHostKeyChecking=no server '
+          echo "Checking application status..."
+          sudo systemctl status hr-assistant
+          echo "Checking recent logs (last 20 lines)..."
+          sudo journalctl -u hr-assistant -n 20
+        '
+      continue-on-error: true
+    
+    - name: Send Slack notification - Deployment Result
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            "attachments": [
+              {
+                "color": "${{ steps.check_status.outputs.color }}",
+                "author_name": "${{ github.actor }}",
+                "title": "Deployment ${{ steps.check_status.outputs.status }} ${{ steps.check_status.outputs.icon }}",
+                "text": "${{ steps.check_status.outputs.text }}",
+                "fields": [
+                  {
+                    "title": "Repository",
+                    "value": "${{ github.repository }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "release",
+                    "short": true
+                  },
+                  {
+                    "title": "Commit",
+                    "value": "${{ github.sha }}",
+                    "short": false
+                  }
+                ],
+                "footer": "GitHub Actions",
+                "ts": ${{ github.event.repository.updated_at }}
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: always()
