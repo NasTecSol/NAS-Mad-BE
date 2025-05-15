@@ -16,7 +16,9 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
           cd ~/apps/NAS-Mad-BE/hr_assistant
-          git pull
+          git fetch origin
+          git checkout release
+          git pull origin release
           source venv/bin/activate
           pip install -r requirements.txt
           sudo supervisorctl restart hr-assistant
