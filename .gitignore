@@ -1,3 +1,4 @@
 hr_assistant/.DS_Store
 /hr_assistant/__pycache__
 hr_assistant/.env
+hr_assistant/hr_assistant.log
