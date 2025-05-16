@@ -28,7 +28,7 @@ jobs:
       id: deploy
       run: |
         set -e
-        echo "::group::Connecting to server and pulling latest changes"
+        echo "::group::Connecting to Madirr server and pulling latest changes"
         ssh -o StrictHostKeyChecking=no server '
           echo "Connected to server"
           cd /root/apps/NAS-Mad-BE  # REPLACE WITH YOUR ACTUAL PATH
