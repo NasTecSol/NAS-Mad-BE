@@ -12,52 +12,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
     
-    - name: Set deployment status to in_progress
-      uses: bobheadxi/deployments@v1
-      id: deployment
-      with:
-        step: start
-        token: ${{ secrets.GITHUB_TOKEN }}
-        env: production
-        desc: "Deployment in progress"
-    
-    - name: Send Slack notification - Deployment Started
-      uses: 8398a7/action-slack@v3
-      with:
-        status: custom
-        custom_payload: |
-          {
-            "attachments": [
-              {
-                "color": "#FFA500",
-                "author_name": "${{ github.actor }}",
-                "title": "Deployment Started :rocket:",
-                "fields": [
-                  {
-                    "title": "Repository",
-                    "value": "${{ github.repository }}",
-                    "short": true
-                  },
-                  {
-                    "title": "Branch",
-                    "value": "release",
-                    "short": true
-                  },
-                  {
-                    "title": "Commit",
-                    "value": "${{ github.sha }}",
-                    "short": false
-                  }
-                ],
-                "footer": "GitHub Actions",
-                "ts": ${{ github.event.repository.updated_at }}
-              }
-            ]
-          }
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      if: always()
-    
     - name: Install SSH key with passphrase
       uses: shimataro/ssh-key-action@v2
       with:
@@ -77,7 +31,7 @@ jobs:
         echo "::group::Connecting to server and pulling latest changes"
         ssh -o StrictHostKeyChecking=no server '
           echo "Connected to server"
-          cd /path/to/NAS-Mad-BE
+          cd /root/apps/NAS-Mad-BE  # REPLACE WITH YOUR ACTUAL PATH
           echo "Current directory: $(pwd)"
           echo "Current branch: $(git branch --show-current)"
           echo "Checking out release branch..."
@@ -113,15 +67,6 @@ jobs:
           echo "text=Deployment failed!" >> $GITHUB_OUTPUT
         fi
     
-    - name: Update deployment status
-      uses: bobheadxi/deployments@v1
-      with:
-        step: finish
-        token: ${{ secrets.GITHUB_TOKEN }}
-        status: ${{ steps.check_status.outputs.status }}
-        env: production
-        deployment_id: ${{ steps.deployment.outputs.deployment_id }}
-    
     - name: Monitor application logs after deployment
       if: steps.deploy.outcome == 'success'
       run: |
@@ -134,39 +79,13 @@ jobs:
       continue-on-error: true
     
     - name: Send Slack notification - Deployment Result
-      uses: 8398a7/action-slack@v3
-      with:
-        status: custom
-        custom_payload: |
-          {
-            "attachments": [
-              {
-                "color": "${{ steps.check_status.outputs.color }}",
-                "author_name": "${{ github.actor }}",
-                "title": "Deployment ${{ steps.check_status.outputs.status }} ${{ steps.check_status.outputs.icon }}",
-                "text": "${{ steps.check_status.outputs.text }}",
-                "fields": [
-                  {
-                    "title": "Repository",
-                    "value": "${{ github.repository }}",
-                    "short": true
-                  },
-                  {
-                    "title": "Branch",
-                    "value": "release",
-                    "short": true
-                  },
-                  {
-                    "title": "Commit",
-                    "value": "${{ github.sha }}",
-                    "short": false
-                  }
-                ],
-                "footer": "GitHub Actions",
-                "ts": ${{ github.event.repository.updated_at }}
-              }
-            ]
-          }
+      uses: rtCamp/action-slack-notify@v2
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_TITLE: "Deployment to Production"
+        SLACK_MESSAGE: "${{ steps.check_status.outputs.text }} Branch: release, Commit: ${{ github.sha }}"
+        SLACK_COLOR: ${{ steps.check_status.outputs.color }}
+        SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
+        SLACK_USERNAME: GitHub Actions
+        SLACK_FOOTER: "Deployed by ${{ github.actor }}"
       if: always()
