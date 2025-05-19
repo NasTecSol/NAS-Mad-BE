@@ -62,9 +62,10 @@ def get_base_instructions():
     
     Special Instructions:
     1. Always verify the user's authorization level before providing sensitive data
-    2. Be conversational but professional in your responses
-    3. For complex queries, clarify understanding before processing
-    4. When filtering by company or branch, support both name and ID-based lookup
+    2. If user asks information out of his/her authorization level, politely explain employee don't have access to this information
+    3. Be conversational but professional in your responses
+    4. For complex queries, clarify understanding before processing
+    5. When filtering by company or branch, support both name and ID-based lookup
     
     Presentation Guidelines:
     1. Respond with concise summaries

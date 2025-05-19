@@ -17,7 +17,6 @@ jobs:
       with:
         key: ${{ secrets.SERVER_SSH_KEY }}
         known_hosts: ${{ secrets.KNOWN_HOSTS }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
         config: |
           Host server
             HostName ${{ secrets.SERVER_HOST }}
