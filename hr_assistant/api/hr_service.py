@@ -306,7 +306,7 @@ class HRService:
             response.raise_for_status()
             result = response.json()
 
-            logger.debug(f"Login response received")
+            logger.debug("Login response received")
 
             if "data" in result and "token" in result["data"]:
                 # Extract token from response
@@ -322,7 +322,7 @@ class HRService:
                     "message": "Login successful!"
                 }
             else:
-                logger.warning(f"Login failed: Invalid response format")
+                logger.warning("Login failed: Invalid response format")
                 logger.debug(f"Response content: {json.dumps(result)}")
                 return {
                     "success": False,
@@ -863,8 +863,8 @@ class HRService:
             # First day of previous month
             first_day_previous_month = last_day_previous_month.replace(day=1)
 
-            start_date = first_day_previous_month.strftime("%Y-%m-%d")
-            end_date = last_day_previous_month.strftime("%Y-%m-%d")
+            start_date = last_day_previous_month.strftime("%Y-%m-%d") 
+            end_date = first_day_previous_month.strftime("%Y-%m-%d")
 
         # 3. Get token for API request
         token = self.get_token(employee_id)
@@ -978,7 +978,7 @@ class HRService:
             org_data = response.json()
 
             if org_data.get("statusCode") == 200 and "data" in org_data:
-                logger.info(f"Successfully retrieved organization structure data")
+                logger.info("Successfully retrieved organization structure data")
                 return {
                     "success": True,
                     "data": org_data["data"],

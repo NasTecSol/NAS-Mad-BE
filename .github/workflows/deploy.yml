@@ -1,0 +1,90 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ release ]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Install SSH key with passphrase
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        config: |
+          Host server
+            HostName ${{ secrets.SERVER_HOST }}
+            User ${{ secrets.SERVER_USERNAME }}
+            IdentityFile ~/.ssh/id_rsa
+    
+    - name: Deploy to server
+      id: deploy
+      run: |
+        set -e
+        echo "::group::Connecting to Madirr server and pulling latest changes"
+        ssh -o StrictHostKeyChecking=no server '
+          echo "Connected to server"
+          cd /root/apps/NAS-Mad-BE  # REPLACE WITH YOUR ACTUAL PATH
+          echo "Current directory: $(pwd)"
+          echo "Current branch: $(git branch --show-current)"
+          echo "Checking out release branch..."
+          git checkout release
+          echo "Pulling latest changes..."
+          git pull origin release
+          echo "Latest commit: $(git log -1 --pretty=format:"%h - %an, %ar : %s")"
+          cd hr_assistant
+          echo "Activating virtual environment..."
+          source venv/bin/activate
+          echo "Installing requirements..."
+          pip install -r requirements.txt
+          echo "Restarting service..."
+          sudo systemctl restart hr-assistant
+          echo "Deployment completed successfully!"
+        '
+        echo "::endgroup::"
+        echo "deployment_status=success" >> $GITHUB_OUTPUT
+      continue-on-error: true
+    
+    - name: Check deployment status
+      id: check_status
+      run: |
+        if [ "${{ steps.deploy.outcome }}" == "success" ]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "color=#36a64f" >> $GITHUB_OUTPUT
+          echo "icon=:white_check_mark:" >> $GITHUB_OUTPUT
+          echo "text=Deployment completed successfully!" >> $GITHUB_OUTPUT
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "color=#dc3545" >> $GITHUB_OUTPUT 
+          echo "icon=:x:" >> $GITHUB_OUTPUT
+          echo "text=Deployment failed!" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Monitor application logs after deployment
+      if: steps.deploy.outcome == 'success'
+      run: |
+        ssh -o StrictHostKeyChecking=no server '
+          echo "Checking application status..."
+          sudo systemctl status hr-assistant
+          echo "Checking recent logs (last 20 lines)..."
+          sudo journalctl -u hr-assistant -n 20
+        '
+      continue-on-error: true
+    
+    - name: Send Slack notification - Deployment Result
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_TITLE: "Deployment to Production"
+        SLACK_MESSAGE: "${{ steps.check_status.outputs.text }} Branch: release, Commit: ${{ github.sha }}"
+        SLACK_COLOR: ${{ steps.check_status.outputs.color }}
+        SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
+        SLACK_USERNAME: GitHub Actions
+        SLACK_FOOTER: "Deployed by ${{ github.actor }}"
+      if: always()

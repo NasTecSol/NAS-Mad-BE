@@ -1,0 +1,2 @@
+2025-05-30 16:17:46,473 - hr_assistant - INFO - Successfully connected to MongoDB
+2025-05-30 16:17:46,473 - hr_assistant - ERROR - Failed to initialize services: Client.__init__() got an unexpected keyword argument 'proxies'
