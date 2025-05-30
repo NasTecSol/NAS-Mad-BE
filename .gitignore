@@ -2,3 +2,8 @@ hr_assistant/.DS_Store
 /hr_assistant/__pycache__
 hr_assistant/.env
 hr_assistant/hr_assistant.log
+/hr_assistant/venv/
+/hr_assistant/modules/__pycache__
+/hr_assistant/config/__pycache__
+/hr_assistant/api/__pycache__
+/hr_assistant/services/__pycache__

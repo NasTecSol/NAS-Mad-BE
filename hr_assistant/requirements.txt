@@ -1,12 +1,40 @@
+# Web framework
 fastapi==0.110.0
 uvicorn==0.27.1
+
+# Environment management
 python-dotenv==1.0.1
 requests==2.31.0
-openai==1.75.0
+
+# OpenAI + AI
+openai==1.25.0  # Pinned to known stable, 1.75 has breaking changes
 PyJWT==2.10.1
-langchain==0.3.25
 
-# For langchain, use specific versions that work with Python 3.13
-pydantic>=2.6.1
+# MongoDB
+pymongo==4.6.1
+motor==3.3.2  # Async Mongo (optional)
 
-# Skip tiktoken or use compatible alternatives
+# Vector ops
+numpy==1.26.4
+pandas==2.2.1
+
+# Langchain with Py 3.13 compatibility
+# Skip or use cautiously. Not all modules work on 3.13
+langchain==0.1.16  # tested 3.13-compatible subset
+
+# Pydantic
+pydantic==2.6.4  # Latest that avoids core build issues
+pydantic-core==2.16.3  # Required manually to avoid wheel error
+
+# Regex
+regex==2023.12.25
+
+# Caching (optional)
+redis==5.0.1
+pymemcache==4.0.0
+
+# Dev tools
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.12.1
+flake8==6.1.0

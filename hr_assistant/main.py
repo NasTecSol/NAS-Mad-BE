@@ -15,11 +15,29 @@ from openai_client import create_openai_client  # Import our custom function
 from openai import OpenAI  # Import the OpenAI class
 
 # Import module interfaces
-import modules.auth as auth_module
-import modules.employee as employee_module
-import modules.attendance as attendance_module
+try:
+    import modules.auth as auth_module
+    import modules.employee as employee_module
+    import modules.attendance as attendance_module
+    MODULES_AVAILABLE = True
+except ImportError as e:
+    logger.error(f"Module import error: {str(e)}")
+    MODULES_AVAILABLE = False
+    
 from utils.attendance_formatter import AttendanceFormatter
 
+try:
+    from services.mongodb_service import MongoDBService
+    from services.vector_search_service import VectorSearchService
+    from services.query_parser_service import QueryParserService
+    from utils.access_control import AccessControlMatrix
+    NEW_SERVICES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"New services not available: {str(e)}")
+    NEW_SERVICES_AVAILABLE = False
+    
+# Initialize services
+hr_service = HRService()
 # Import assistant instructions
 try:
     from modules.assistant_instructions import get_complete_instructions
@@ -69,8 +87,12 @@ hr_service = HRService()
 
 # Initialize modules by passing the HR service
 auth_module.initialize(hr_service)
-employee_module.initialize(hr_service)
 attendance_module.initialize(hr_service)
+# Backward compatibility check
+if hasattr(employee_module, 'initialize'):
+    employee_module.initialize(hr_service)
+else:
+    logger.info("Employee module uses new self-initialization pattern")
 
 # Make sure the static directory exists
 os.makedirs("static", exist_ok=True)
@@ -107,9 +129,12 @@ employee_data_cache = {}
 # Employee data cache expiration time (24 hours)
 EMPLOYEE_DATA_CACHE_EXPIRY = timedelta(hours=24)
 
+# Initialize new services
+mongodb_service = None
+vector_search_service = None
+query_parser_service = None
+
 # Helper function to get time-based greeting
-
-
 def get_greeting() -> str:
     """Generate appropriate greeting based on current time of day."""
     current_hour = datetime.now().hour
@@ -122,8 +147,6 @@ def get_greeting() -> str:
         return "Good evening"
 
 # Check if employee should be greeted today
-
-
 def should_greet_employee(employee_id: str) -> bool:
     """Check if employee should be greeted based on last greeting time."""
     today = datetime.now().date()
@@ -136,15 +159,11 @@ def should_greet_employee(employee_id: str) -> bool:
     return last_greeted_date != today
 
 # Update last greeting time for employee
-
-
 def update_employee_greeting_time(employee_id: str):
     """Update the last time the employee was greeted."""
     employee_last_greeted[employee_id] = datetime.now()
 
 # Get cached employee data or fetch it if needed/expired
-
-
 def get_employee_data(employee_id: str) -> Dict[str, Any]:
     """
     Get employee data from cache or fetch from service if needed.
@@ -187,8 +206,6 @@ def get_employee_data(employee_id: str) -> Dict[str, Any]:
         return employee_data_cache.get(employee_id, {}).get("data", {}) or {}
 
 # Create or get assistant
-
-
 def get_assistant(client):
     """Create or get the HR assistant"""
     # Check if assistant ID is in env
@@ -215,12 +232,35 @@ def get_assistant(client):
     raise ValueError(
         "Assistant ID not found and creation logic not implemented")
 
+
+def initialize_new_services():
+    """Initialize the new MongoDB and vector search services"""
+    global mongodb_service, vector_search_service, query_parser_service
+
+    if not NEW_SERVICES_AVAILABLE:
+        logger.warning("New services not available")
+        return False
+
+    try:
+        if not mongodb_service:
+            mongodb_service = MongoDBService()
+            vector_search_service = VectorSearchService(mongodb_service)
+            query_parser_service = QueryParserService()
+            logger.info("New services initialized successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to initialize new services: {str(e)}")
+        return False
+
 # Function to handle tool calls made by the assistant
-
-
 def handle_tool_calls(required_action):
     """Process tool calls from the assistant and return results"""
     tool_outputs = []
+
+    # Initialize new services if not already done
+    if not initialize_new_services():
+        logger.error("Failed to initialize services for tool handling")
+
     for tool_call in required_action.submit_tool_outputs.tool_calls:
         function_name = tool_call.function.name
         function_args = json.loads(tool_call.function.arguments)
@@ -231,19 +271,30 @@ def handle_tool_calls(required_action):
         authenticated_employee_id = getattr(
             handle_tool_calls, 'current_employee_id', None)
 
-        # IMPORTANT: Override any employee_id in the function arguments with the authenticated user's ID
-        if authenticated_employee_id and "employee_id" in function_args:
-            original_id = function_args["employee_id"]
-            if original_id != authenticated_employee_id:
-                logger.warning(
-                    f"Overriding employee_id in tool call from {original_id} to {authenticated_employee_id}")
-            function_args["employee_id"] = authenticated_employee_id
-
         result = None
         try:
             if function_name == "get_employee_data":
-                result = hr_service.get_employee_data(
-                    function_args.get("employee_id"))
+                # Use the new intelligent employee data retrieval
+                query = function_args.get("query", "")
+
+                # If no query provided but employee_id exists, create a basic query
+                if not query and function_args.get("employee_id"):
+                    query = f"get information for employee {function_args['employee_id']}"
+                elif not query:
+                    query = "show my information"
+
+                # Import the updated module function
+                from modules.employee import get_employee_data_tool
+                result = get_employee_data_tool(
+                    query, authenticated_employee_id)
+
+            elif function_name == "find_similar_employees":
+                # Use the new similar employees functionality
+                employee_id = function_args.get(
+                    "employee_id", authenticated_employee_id)
+                from modules.employee import search_similar_employees_tool
+                result = search_similar_employees_tool(
+                    employee_id, authenticated_employee_id)
 
             elif function_name == "get_attendance":
                 result = hr_service.get_attendance(
@@ -302,8 +353,6 @@ def handle_tool_calls(required_action):
     return tool_outputs
 
 # Define routes
-
-
 @app.get("/", response_class=HTMLResponse)
 def read_root():
     """Serve the frontend HTML file"""
@@ -320,21 +369,135 @@ def read_root():
             </body>
         </html>
         """
+        
+        
+# Add a new endpoint for access control information
+@app.get("/access-info/{employee_id}")
+def get_access_info(employee_id: str):
+    """Get access control information for an employee"""
+    try:
+        # Initialize services
+        if not initialize_new_services():
+            return {"error": "Service initialization failed"}
+
+        # Get employee data
+        employee_data = mongodb_service.get_employee_by_id(employee_id)
+        if not employee_data:
+            return {"error": "Employee not found"}
+
+        # Extract grade and role
+        employee_info = employee_data.get("employeeInfo", [{}])[0]
+        grade = employee_info.get("grade", "L4")
+        role = employee_data.get("role", "")
+
+        # Get access summary
+        access_summary = AccessControlMatrix.get_access_summary(grade, role)
+
+        return {
+            "employee_id": employee_id,
+            "grade": grade,
+            "role": role,
+            "access_summary": access_summary
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting access info for {employee_id}: {str(e)}")
+        return {"error": str(e)}
+    
+# Add endpoint for testing vector search
+@app.post("/test-search")
+def test_search(request: dict):
+    """Test endpoint for vector search functionality"""
+    try:
+        if not initialize_new_services():
+            return {"error": "Service initialization failed"}
+
+        query = request.get("query", "")
+        # vector, criteria, or text
+        search_type = request.get("type", "vector")
+
+        if search_type == "vector":
+            results = vector_search_service.semantic_search_employees(query)
+        elif search_type == "criteria":
+            criteria = request.get("criteria", {})
+            results = mongodb_service.search_employees_by_criteria(criteria)
+        else:
+            results = mongodb_service.search_employees_by_text(query)
+
+        # Return basic info only for testing
+        simplified_results = []
+        for emp in results:
+            simplified_results.append({
+                "name": f"{emp.get('firstName', '')} {emp.get('lastName', '')}".strip(),
+                "employee_id": emp.get("userName", ""),
+                "department": emp.get("employeeInfo", [{}])[0].get("depName", ""),
+                "score": emp.get("score", 0) if search_type == "vector" else None
+            })
+
+        return {
+            "query": query,
+            "search_type": search_type,
+            "results_count": len(simplified_results),
+            "results": simplified_results
+        }
+
+    except Exception as e:
+        logger.error(f"Error in test search: {str(e)}")
+        return {"error": str(e)}
+    
+# Add endpoint for generating embeddings
+@app.post("/generate-embeddings")
+def generate_embeddings(request: dict):
+    """Generate embeddings for employees"""
+    try:
+        if not initialize_new_services():
+            return {"error": "Service initialization failed"}
+
+        batch_size = request.get("batch_size", 10)
+        count = vector_search_service.bulk_update_embeddings(batch_size)
+
+        return {
+            "success": True,
+            "processed_count": count,
+            "message": f"Generated embeddings for {count} employees"
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating embeddings: {str(e)}")
+        return {"error": str(e)}
 
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint"""
-    return {
+    """Enhanced health check endpoint"""
+    health_status = {
         "status": "ok",
         "message": "HR Assistant API is running",
         "stats": {
             "cached_employees": len(employee_data_cache),
             "active_threads": len(employee_threads),
             "greeted_today": len(employee_last_greeted)
+        },
+        "services": {
+            "legacy_modules": MODULES_AVAILABLE,
+            "new_services": NEW_SERVICES_AVAILABLE,
+            "mongodb": False,
+            "vector_search": False
         }
     }
 
+    # Check new services
+    if NEW_SERVICES_AVAILABLE:
+        try:
+            initialize_new_services()
+            if mongodb_service and mongodb_service.is_connected():
+                health_status["services"]["mongodb"] = True
+            if vector_search_service:
+                health_status["services"]["vector_search"] = True
+        except Exception as e:
+            health_status["services"]["error"] = str(e)
+
+    return health_status
 
 @app.delete("/cache/{employee_id}")
 def clear_employee_cache(employee_id: str):
@@ -348,7 +511,7 @@ def clear_employee_cache(employee_id: str):
 
 
 def get_openai_client():
-    """Initialize and return the OpenAI client"""
+    """Initialize and return the OpenAI client with error handling"""
     global openai_client
 
     # Return existing client if already created
@@ -356,16 +519,46 @@ def get_openai_client():
         logger.debug("Using existing OpenAI client")
         return openai_client
 
-    # Create new client
+    # Create new client with multiple fallback methods
     api_key = settings.OPENAI_API_KEY
     logger.info("Initializing new OpenAI client")
 
     if not api_key:
-        raise ValueError(
+        logger.error(
             "OpenAI API key not found. Please set OPENAI_API_KEY in your environment.")
+        return None
 
-    openai_client = OpenAI(api_key=api_key)
-    return openai_client
+    try:
+        # Method 1: Minimal OpenAI client (most compatible)
+        openai_client = OpenAI(api_key=api_key)
+        logger.info("OpenAI client initialized successfully")
+        return openai_client
+    except Exception as e1:
+        logger.warning(f"Method 1 failed: {str(e1)}")
+        try:
+            # Method 2: Try with only required parameters
+            openai_client = OpenAI(
+                api_key=api_key,
+                timeout=30.0
+            )
+            logger.info("OpenAI client initialized with method 2")
+            return openai_client
+        except Exception as e2:
+            logger.warning(f"Method 2 failed: {str(e2)}")
+            try:
+                # Method 3: Legacy initialization
+                import openai
+                openai.api_key = api_key
+                openai_client = openai
+                logger.info("OpenAI client initialized with legacy method")
+                return openai_client
+            except Exception as e3:
+                logger.error(
+                    f"All OpenAI initialization methods failed: {str(e3)}")
+                logger.info(
+                    "Continuing without OpenAI - will use fallback responses")
+                return None
+
 
 
 def get_employee_thread(client, employee_id):
@@ -395,20 +588,21 @@ def get_employee_thread(client, employee_id):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: Request):
-    """Handle chat requests from the frontend"""
+    """Handle chat requests from the frontend with OpenAI error handling"""
     try:
         body_bytes = await request.body()
         body = json.loads(body_bytes)
 
         # Extract the data, handling both nested and flat structures
-        data = body.get("request", body)  # Try to get "request" field, if not present use the body itself
+        # Try to get "request" field, if not present use the body itself
+        data = body.get("request", body)
 
         # Extract the required fields
         employee_id = data.get("employee_id")
         if not employee_id:
             return JSONResponse(
-            status_code=400,
-            content={"error": "employee_id is required"}
+                status_code=400,
+                content={"error": "employee_id is required"}
             )
 
         req_message = data.get("message", "")
@@ -416,9 +610,10 @@ async def chat_endpoint(request: Request):
 
         # Now process with these fields
         logger.info(f"Chat request received for employee: {employee_id}")
-        
+
         employee_data = get_employee_data(employee_id)
-        response= ""
+        response = ""
+
         # Check if we got valid employee data
         if not employee_data:
             return ChatResponse(response="Error: Unable to retrieve your employee information. Please try again later.")
@@ -434,16 +629,18 @@ async def chat_endpoint(request: Request):
         except Exception as e:
             logger.warning(f"Error extracting employee name: {str(e)}")
             employee_name = "there"
+            employee_grade = "L4"
 
-    # Create greeting based on time
+        # Create greeting based on time
         greeting = get_greeting()
-        # Process actual query with OpenAI Assistant
-        logger.info(
-            f"Processing query for employee {employee_id}: {req_message}")
 
+        # Try OpenAI Assistant first, with fallback to new employee module
         try:
-            # Initialize OpenAI client using our function that handles caching
+            # Initialize OpenAI client using our fixed function
             client = get_openai_client()
+
+            if client is None:
+                raise Exception("OpenAI client not available")
 
             # Get or create the assistant
             assistant = get_assistant(client)
@@ -469,8 +666,7 @@ async def chat_endpoint(request: Request):
                 My question: {req_message}
                 """
             )
-            
-            
+
             # Determine greeting instruction based on whether employee was already greeted today
             greeting_instruction = ""
             should_greet = should_greet_employee(employee_id)
@@ -479,7 +675,7 @@ async def chat_endpoint(request: Request):
                 greeting_instruction = f"Greet employee i.e '{greeting}, {employee_name}! in language = {user_language}'"
                 update_employee_greeting_time(employee_id)
             else:
-                greeting_instruction = "No need for formal greeting as we're already in a conversation, Keep conversation in language = {user_language} "
+                greeting_instruction = f"No need for formal greeting as we're already in a conversation, Keep conversation in language = {user_language} "
 
             assistant_instructions = get_complete_instructions(
                 authenticated_employee_id=employee_id,
@@ -487,7 +683,7 @@ async def chat_endpoint(request: Request):
                 employee_grade=employee_grade,
                 greeting_instruction=greeting_instruction
             )
-            
+
             # Run the assistant
             run = client.beta.threads.runs.create(
                 thread_id=thread_id,
@@ -526,7 +722,8 @@ async def chat_endpoint(request: Request):
                     if hasattr(run_status, "last_error"):
                         logger.error(
                             f"Error details: {run_status.last_error}")
-                    return ChatResponse(response="I apologize, but I encountered an error processing your request. Please try again.")
+                    raise Exception(
+                        f"Assistant run failed: {run_status.status}")
 
                 # Wait before checking again (increase delay to avoid rate limits)
                 time.sleep(2)
@@ -534,7 +731,7 @@ async def chat_endpoint(request: Request):
             if attempt >= max_attempts:
                 logger.error(
                     "Reached maximum number of attempts waiting for assistant response")
-                return ChatResponse(response="I apologize, but it's taking too long to process your request. Please try again later.")
+                raise Exception("Assistant response timeout")
 
             # Get the latest message from the thread
             messages = client.beta.threads.messages.list(
@@ -557,16 +754,51 @@ async def chat_endpoint(request: Request):
             else:
                 response = "I apologize, but I couldn't generate a response. Please try again."
 
-        except Exception as e:
-                logger.error(f"Error generating response: {str(e)}")
-                response = "I apologize, but I'm having trouble processing your request right now. Please try again later."
+        except Exception as openai_error:
+            logger.warning(f"OpenAI Assistant failed: {str(openai_error)}")
+            logger.info("Falling back to new employee module")
+
+            # Fallback to new employee module
+            try:
+                # Try to use the new employee module
+                from modules.employee import get_employee_data_tool
+
+                # Use the new employee module as fallback
+                query = req_message if req_message else "show my information"
+                result = get_employee_data_tool(query, employee_id)
+
+                if result.get("success"):
+                    # Add greeting if needed
+                    should_greet = should_greet_employee(employee_id)
+                    greeting_text = ""
+                    if should_greet:
+                        greeting_text = f"{greeting}, {employee_name}!\n\n"
+                        update_employee_greeting_time(employee_id)
+
+                    response = greeting_text + \
+                        result.get("formatted_response",
+                                   "I found some information for you.")
+                else:
+                    response = result.get(
+                        "message", "I apologize, but I couldn't find the information you requested.")
+
+            except Exception as fallback_error:
+                logger.error(
+                    f"Fallback method also failed: {str(fallback_error)}")
+
+                # Final fallback - basic response
+                should_greet = should_greet_employee(employee_id)
+                if should_greet:
+                    response = f"{greeting}, {employee_name}! I'm having some technical difficulties right now, but I'm here to help. Could you please try your request again?"
+                    update_employee_greeting_time(employee_id)
+                else:
+                    response = "I'm experiencing some technical issues right now. Please try your request again, or contact IT support if the problem persists."
 
         return ChatResponse(response=response)
 
     except Exception as e:
         logger.error(f"Unexpected error in chat endpoint: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail=f"An error occurred: {str(e)}")
+        return ChatResponse(response="I apologize, but I'm experiencing technical difficulties. Please try again later.")
 
 # Run the application
 if __name__ == "__main__":
